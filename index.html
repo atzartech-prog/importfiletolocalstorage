@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StorageLearn - Simulasi & Pembelajaran Upload File ke LocalStorage</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+    <!-- Lucide Icons CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/lucide@0.344.0/dist/umd/lucide.min.js"></script>
+    <!-- SheetJS (xlsx.full.min.js) CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+    <!-- App Container -->
+    <div class="app-container">
+        
+        <!-- Header -->
+        <header class="main-header">
+            <div class="logo-area">
+                <div class="icon-wrapper">
+                    <i data-lucide="database" class="glow-icon"></i>
+                </div>
+                <div>
+                    <h1>StorageLearn</h1>
+                    <p class="tagline">Media Pembelajaran Upload & Update Data via LocalStorage</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="btn-reset-app" class="btn btn-danger-outline" title="Reset Semua Data Latihan">
+                    <i data-lucide="refresh-cw"></i> Reset Demo
+                </button>
+                <div class="badge badge-accent">HTML5 Web Storage</div>
+            </div>
+        </header>
+
+        <!-- Main Content Layout -->
+        <main class="dashboard-grid">
+            
+            <!-- COLUMN 1: UPLOADER & CONFIG -->
+            <section class="dashboard-card upload-panel">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="upload-cloud"></i>
+                        <h2>Upload & Parse Playground</h2>
+                    </div>
+                    <span class="card-subtitle">Pilih tipe file dan upload untuk dimasukkan ke LocalStorage</span>
+                </div>
+                
+                <div class="card-body">
+                    <!-- File Type Selector -->
+                    <div class="form-group">
+                        <label class="form-label">Tipe File Tujuan</label>
+                        <div class="file-type-grid">
+                            <button type="button" class="type-btn active" data-type="json">
+                                <i data-lucide="braces"></i>
+                                <span>JSON</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="excel">
+                                <i data-lucide="table-2"></i>
+                                <span>Excel (XLSX/XLS)</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="csv">
+                                <i data-lucide="file-spreadsheet"></i>
+                                <span>CSV</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="image">
+                                <i data-lucide="image"></i>
+                                <span>Image (Base64)</span>
+                            </button>
+                            <button type="button" class="type-btn" data-type="text">
+                                <i data-lucide="file-text"></i>
+                                <span>Text Plain</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Dropzone -->
+                    <div class="upload-dropzone" id="dropzone">
+                        <input type="file" id="file-input" class="hidden-input" accept=".json">
+                        <div class="dropzone-content">
+                            <i data-lucide="file-up" class="drop-icon"></i>
+                            <p class="drop-text">Drag & drop file Anda di sini atau <span class="highlight">klik untuk browse</span></p>
+                            <p id="file-accepted-formats" class="format-hint">Menerima format file: .json</p>
+                        </div>
+                    </div>
+
+                    <!-- File Info Indicator -->
+                    <div id="file-info-box" class="file-info-box hidden">
+                        <i data-lucide="file" class="file-info-icon"></i>
+                        <div class="file-info-text">
+                            <span id="info-filename" class="filename">data.json</span>
+                            <span id="info-filesize" class="filesize">4.2 KB</span>
+                        </div>
+                        <button type="button" id="btn-cancel-file" class="btn-icon" title="Batalkan File">
+                            <i data-lucide="x"></i>
+                        </button>
+                    </div>
+
+                    <!-- Parse Options -->
+                    <div class="parse-options-panel">
+                        <div class="form-group">
+                            <label class="form-label" for="storage-key">Key LocalStorage Sasaran</label>
+                            <div class="input-with-button">
+                                <input type="text" id="storage-key" value="user_data_json" placeholder="Contoh: app_data_key">
+                                <button type="button" id="btn-suggest-key" class="btn-small" title="Buat Key Otomatis">
+                                    <i data-lucide="sparkles"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="checkbox-group" id="excel-sheet-selector-wrapper" style="display: none;">
+                            <label class="form-label" for="excel-sheet-select">Pilih Sheet Excel</label>
+                            <select id="excel-sheet-select" class="form-select">
+                                <option value="">-- Upload file Excel dulu --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Process Buttons -->
+                    <div class="action-buttons-group">
+                        <button type="button" id="btn-process-file" class="btn btn-primary btn-block" disabled>
+                            <i data-lucide="play"></i> Proses & Simpan ke LocalStorage
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 2: LOCALSTORAGE MONITOR & STATE -->
+            <section class="dashboard-card monitor-panel">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="activity"></i>
+                        <h2>LocalStorage Monitor</h2>
+                    </div>
+                    <span class="card-subtitle">Pantau ukuran dan isi database lokal browser secara realtime</span>
+                </div>
+                
+                <div class="card-body">
+                    <!-- Gauge / Storage Progress -->
+                    <div class="storage-usage-container">
+                        <div class="gauge-meta">
+                            <span class="gauge-label">Estimasi Penggunaan Memori</span>
+                            <span id="storage-percentage-text" class="gauge-val">0.00%</span>
+                        </div>
+                        <div class="progress-bar-bg">
+                            <div id="storage-progress-bar" class="progress-bar-fill" style="width: 0%"></div>
+                        </div>
+                        <div class="gauge-footer">
+                            <span id="storage-used-text">0.00 KB</span>
+                            <span>Batas Aman: 5.00 MB</span>
+                        </div>
+                    </div>
+
+                    <!-- Key List -->
+                    <div class="keys-list-container">
+                        <div class="list-header">
+                            <h3>Daftar Key Tersimpan</h3>
+                            <button id="btn-clear-storage" class="btn-text-danger">
+                                <i data-lucide="trash-2"></i> Hapus Semua
+                            </button>
+                        </div>
+                        
+                        <div class="key-list-scroll" id="localstorage-keys-list">
+                            <!-- Items dynamically loaded -->
+                            <div class="empty-state">
+                                <i data-lucide="inbox"></i>
+                                <p>LocalStorage Anda kosong. Upload file untuk mengisi.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- COLUMN 3: EDUCATION & DOCUMENTATION (TABS) -->
+            <section class="dashboard-card education-panel">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i data-lucide="graduation-cap"></i>
+                        <h2>Panduan Edukatif & Kode Sumber</h2>
+                    </div>
+                    
+                    <!-- Tabs Header -->
+                    <div class="tabs-header">
+                        <button class="tab-btn active" data-tab="edu-theory">
+                            <i data-lucide="book-open"></i> Teori & Limitasi
+                        </button>
+                        <button class="tab-btn" data-tab="edu-sheetjs">
+                            <i data-lucide="file-code"></i> Rahasia SheetJS (Excel)
+                        </button>
+                        <button class="tab-btn" data-tab="edu-codesnippets">
+                            <i data-lucide="code-2"></i> Snippet JavaScript
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-body tab-content-container">
+                    <!-- Tab 1: Teori & Limitasi -->
+                    <div class="tab-content active" id="tab-edu-theory">
+                        <div class="prose">
+                            <h3>Bagaimana Cara Browser Menyimpan File?</h3>
+                            <p>LocalStorage <strong>hanya dapat menyimpan data dalam format String (teks biasa)</strong> dengan metode key-value.</p>
+                            
+                            <div class="alert-box alert-warning">
+                                <strong>PENTING:</strong> Anda tidak bisa langsung menyimpan object biner mentah seperti file <code>.xlsx</code>, <code>.png</code>, atau <code>.pdf</code> langsung ke LocalStorage. File tersebut wajib dikonversi atau diparsing terlebih dahulu!
+                            </div>
+
+                            <h4>Pendekatan Konversi File:</h4>
+                            <ul>
+                                <li>
+                                    <strong>Parsing Data (JSON/CSV/Excel):</strong> File dibaca, diambil data tabular/strukturnya, diubah menjadi Array of Objects di JavaScript, kemudian diubah ke teks JSON dengan <code>JSON.stringify()</code> baru disimpan.
+                                </li>
+                                <li>
+                                    <strong>Encoding Biner (Gambar/PDF):</strong> File diubah menjadi string panjang berformat <strong>Base64 DataURL</strong> menggunakan API browser <code>FileReader.readAsDataURL()</code>.
+                                </li>
+                            </ul>
+
+                            <h4>Batas Kapasitas LocalStorage:</h4>
+                            <p>Rata-rata browser membatasi penggunaan LocalStorage maksimal sebesar <strong>5 MB per domain (origin)</strong>. Menyimpan file gambar berukuran besar sangat tidak disarankan karena Base64 meningkatkan ukuran file sekitar 33% dan dapat memblokir kinerja render UI (Thread Synchronous).</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 2: Rahasia SheetJS -->
+                    <div class="tab-content" id="tab-edu-sheetjs">
+                        <div class="prose">
+                            <h3>Memproses File Excel (.xlsx / .xls)</h3>
+                            <p>File Excel adalah file biner terkompresi yang kompleks. Untuk membaca data di dalamnya di sisi klien (browser tanpa server), kita menggunakan pustaka open-source bernama <strong>SheetJS (XLSX)</strong>.</p>
+                            
+                            <div class="mermaid-diagram-card">
+                                <div class="flow-step">
+                                    <span class="step-num">1</span>
+                                    <div class="step-desc">
+                                        <strong>Pilih File Excel</strong>
+                                        <p>User mengunggah file .xlsx / .xls melalui elemen input file.</p>
+                                    </div>
+                                </div>
+                                <div class="flow-arrow"><i data-lucide="chevron-down"></i></div>
+                                <div class="flow-step">
+                                    <span class="step-num">2</span>
+                                    <div class="step-desc">
+                                        <strong>FileReader (ArrayBuffer)</strong>
+                                        <p>Membaca file sebagai biner mentah: <code>reader.readAsArrayBuffer(file)</code>.</p>
+                                    </div>
+                                </div>
+                                <div class="flow-arrow"><i data-lucide="chevron-down"></i></div>
+                                <div class="flow-step">
+                                    <span class="step-num">3</span>
+                                    <div class="step-desc">
+                                        <strong>SheetJS Parse Workbook</strong>
+                                        <p>Memparse biner Excel menjadi objek workbook: <code>XLSX.read(data, {type: 'array'})</code>.</p>
+                                    </div>
+                                </div>
+                                <div class="flow-arrow"><i data-lucide="chevron-down"></i></div>
+                                <div class="flow-step">
+                                    <span class="step-num">4</span>
+                                    <div class="step-desc">
+                                        <strong>Konversi Sheet ke JSON</strong>
+                                        <p>Mengambil data baris-kolom sheet tertentu menjadi Array JSON: <code>XLSX.utils.sheet_to_json(sheet)</code>.</p>
+                                    </div>
+                                </div>
+                                <div class="flow-arrow"><i data-lucide="chevron-down"></i></div>
+                                <div class="flow-step">
+                                    <span class="step-num">5</span>
+                                    <div class="step-desc">
+                                        <strong>Simpan string JSON</strong>
+                                        <p>Menyimpan data string ke memori lokal: <code>localStorage.setItem(key, JSON.stringify(jsonData))</code>.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <p class="mt-4">Dengan cara ini, file Excel yang tadinya berformat biner beralih menjadi format data terstruktur JSON yang mudah dirender ke HTML.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Snippet JavaScript -->
+                    <div class="tab-content" id="tab-edu-codesnippets">
+                        <div class="snippets-selector">
+                            <label class="form-label-small" for="select-snippet-type">Pilih Tipe Source Code:</label>
+                            <select id="select-snippet-type" class="form-select-small">
+                                <option value="code-json">1. Membaca & Menyimpan JSON</option>
+                                <option value="code-excel">2. Membaca Excel (SheetJS)</option>
+                                <option value="code-image">3. Mengubah Gambar ke Base64</option>
+                                <option value="code-csv">4. Parser CSV Sederhana</option>
+                            </select>
+                        </div>
+
+                        <!-- Code Preview Area -->
+                        <div class="code-editor-mock">
+                            <div class="editor-header">
+                                <span class="dot red"></span>
+                                <span class="dot yellow"></span>
+                                <span class="dot green"></span>
+                                <span class="editor-title" id="snippet-title">json-parser.js</span>
+                            </div>
+                            <pre><code id="code-display" class="language-js">// Javascript code here...</code></pre>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- DOWN SECTION: PREVIEW & VISUALIZER OF STORED DATA -->
+        <section class="dashboard-card visualizer-panel">
+            <div class="card-header">
+                <div class="card-title">
+                    <i data-lucide="eye"></i>
+                    <h2>Data Visualizer & Render Board</h2>
+                </div>
+                <span class="card-subtitle">Melihat hasil parsing data dari LocalStorage yang dipilih</span>
+            </div>
+
+            <div class="card-body">
+                <div class="visualizer-controls">
+                    <div class="target-key-selector">
+                        <label class="form-label-inline" for="select-preview-key">Pilih Data Key:</label>
+                        <select id="select-preview-key" class="form-select">
+                            <option value="">-- Pilih Key dari LocalStorage --</option>
+                        </select>
+                    </div>
+                    <div class="visualizer-mode-toggle">
+                        <button type="button" class="btn-toggle active" data-mode="rendered">
+                            <i data-lucide="layout-grid"></i> Visualisasi UI
+                        </button>
+                        <button type="button" class="btn-toggle" data-mode="raw">
+                            <i data-lucide="code"></i> Raw JSON String
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Visualizer Display Area -->
+                <div id="visualizer-output" class="visualizer-output-box">
+                    <div class="empty-state">
+                        <i data-lucide="eye-off"></i>
+                        <p>Silakan pilih Key LocalStorage di atas untuk memvisualisasikan data.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer class="app-footer">
+            <p>StorageLearn dibuat untuk tujuan edukasi parsing & manipulasi file di sisi client browser.</p>
+            <p class="copyright">&copy; 2026 Developer Antigravity. Open Source MIT License.</p>
+        </footer>
+    </div>
+
+    <!-- Modal Detail Viewer -->
+    <div id="detail-modal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3>Detail Data LocalStorage</h3>
+                <button type="button" id="btn-close-modal" class="btn-icon">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="meta-row">
+                    <div><strong>Key:</strong> <span id="modal-key-name">data_key</span></div>
+                    <div><strong>Ukuran:</strong> <span id="modal-key-size">0 KB</span></div>
+                </div>
+                <pre class="modal-code"><code id="modal-json-content">Loading...</code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="btn-copy-modal" class="btn btn-secondary">
+                    <i data-lucide="copy"></i> Salin Data
+                </button>
+                <button type="button" id="btn-close-modal-confirm" class="btn btn-primary">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main JavaScript Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
