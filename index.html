@@ -27,14 +27,14 @@
                 </div>
                 <div>
                     <h1>StorageLearn</h1>
-                    <p class="tagline">Media Pembelajaran Upload & Update Data via LocalStorage</p>
+                    <p class="tagline">Media Pembelajaran Upload & Update Data via LocalStorage & IndexedDB</p>
                 </div>
             </div>
             <div class="header-actions">
                 <button id="btn-reset-app" class="btn btn-danger-outline" title="Reset Semua Data Latihan">
                     <i data-lucide="refresh-cw"></i> Reset Demo
                 </button>
-                <div class="badge badge-accent">HTML5 Web Storage</div>
+                <div class="badge badge-accent">Web Storage Learn</div>
             </div>
         </header>
 
@@ -189,11 +189,14 @@
                         <button class="tab-btn active" data-tab="edu-theory">
                             <i data-lucide="book-open"></i> Teori & Limitasi
                         </button>
+                        <button class="tab-btn" data-tab="edu-indexeddb">
+                            <i data-lucide="hard-drive"></i> IndexedDB
+                        </button>
                         <button class="tab-btn" data-tab="edu-sheetjs">
-                            <i data-lucide="file-code"></i> Rahasia SheetJS (Excel)
+                            <i data-lucide="file-code"></i> Rahasia SheetJS
                         </button>
                         <button class="tab-btn" data-tab="edu-codesnippets">
-                            <i data-lucide="code-2"></i> Snippet JavaScript
+                            <i data-lucide="code-2"></i> Snippets
                         </button>
                     </div>
                 </div>
@@ -224,7 +227,28 @@
                         </div>
                     </div>
 
-                    <!-- Tab 2: Rahasia SheetJS -->
+                    <!-- Tab 2: IndexedDB -->
+                    <div class="tab-content" id="tab-edu-indexeddb">
+                        <div class="prose">
+                            <h3>IndexedDB: Solusi Penyimpanan Skala Besar</h3>
+                            <p><strong>IndexedDB</strong> adalah database transaksional berbasis objek di browser untuk menyimpan data terstruktur dalam jumlah besar, termasuk objek biner (seperti gambar, file audio, file Excel, PDF) secara langsung sebagai <code>Blob</code>.</p>
+                            
+                            <div class="alert-box alert-success">
+                                <strong>Kelebihan Utama IndexedDB dibanding LocalStorage:</strong>
+                                <ul>
+                                    <li><strong>Kapasitas Raksasa:</strong> Tidak terbatas pada 5MB. IndexedDB dapat memakai hingga 50% dari ruang disk kosong perangkat pengguna (ratusan Megabyte hingga Gigabyte).</li>
+                                    <li><strong>Asinkronus (Non-Blocking):</strong> Operasi database berjalan asinkronus (event-driven), sehingga UI browser Anda tidak akan lag/hang saat membaca data besar.</li>
+                                    <li><strong>Mendukung Data Biner Asli:</strong> Bisa menyimpan tipe data <code>Blob</code>, <code>File</code>, atau <code>ArrayBuffer</code> secara langsung tanpa konversi string Base64 yang memakan memori.</li>
+                                    <li><strong>Fitur Query Canggih:</strong> Mendukung indeksasi data, transaksi penuh (rollback otomatis bila error), pencarian rentang kunci (key range queries), dan penanganan beberapa database.</li>
+                                </ul>
+                            </div>
+                            
+                            <h4>Kapan Harus Beralih ke IndexedDB?</h4>
+                            <p>Ketika aplikasi web Anda memerlukan penyimpanan luring (*offline support*), mengelola data masal ribuan produk, menyimpan galeri foto buatan user lokal, atau ketika mengolah file Excel/PDF mentah di sisi klien.</p>
+                        </div>
+                    </div>
+
+                    <!-- Tab 3: Rahasia SheetJS -->
                     <div class="tab-content" id="tab-edu-sheetjs">
                         <div class="prose">
                             <h3>Memproses File Excel (.xlsx / .xls)</h3>
@@ -276,7 +300,7 @@
                         </div>
                     </div>
 
-                    <!-- Tab 3: Snippet JavaScript -->
+                    <!-- Tab 4: Snippet JavaScript -->
                     <div class="tab-content" id="tab-edu-codesnippets">
                         <div class="snippets-selector">
                             <label class="form-label-small" for="select-snippet-type">Pilih Tipe Source Code:</label>
@@ -285,6 +309,7 @@
                                 <option value="code-excel">2. Membaca Excel (SheetJS)</option>
                                 <option value="code-image">3. Mengubah Gambar ke Base64</option>
                                 <option value="code-csv">4. Parser CSV Sederhana</option>
+                                <option value="code-indexeddb">5. Operasi Dasar IndexedDB (Blob)</option>
                             </select>
                         </div>
 

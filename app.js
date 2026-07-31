@@ -52,7 +52,7 @@ function handleExcelUpload(file, storageKey, selectedSheetName) {
         // 5. Stringify data dan simpan ke LocalStorage
         localStorage.setItem(storageKey, JSON.stringify(jsonData));
         
-        alert(\`Sukses menyimpan data Sheet "\${selectedSheetName}" ke LocalStorage!\`);
+        alert(\`Sukses menyimpan data Sheet "\&{selectedSheetName}" ke LocalStorage!\`);
         updateStorageMonitor();
     };
     
@@ -111,6 +111,50 @@ function handleCSVUpload(file, storageKey) {
     };
     
     reader.readAsText(file);
+}`,
+    'code-indexeddb': `// 5. Operasi Dasar Menyimpan File (Blob) di IndexedDB
+function saveFileToIndexedDB(file, dbName, storeName, keyName) {
+    // 1. Membuka koneksi database IndexedDB
+    const request = indexedDB.open(dbName, 1);
+    
+    // Inisialisasi Object Store jika database baru dibuat / diupgrade
+    request.onupgradeneeded = function(e) {
+        const db = e.target.result;
+        if (!db.objectStoreNames.contains(storeName)) {
+            db.createObjectStore(storeName, { keyPath: 'id' });
+        }
+    };
+    
+    request.onsuccess = function(e) {
+        const db = e.target.result;
+        
+        // 2. Membuka transaksi ReadWrite
+        const transaction = db.transaction([storeName], 'readwrite');
+        const store = transaction.objectStore(storeName);
+        
+        // 3. Menyimpan file mentah (Blob/File) secara langsung bersama metadata
+        const dataRecord = {
+            id: keyName,
+            fileName: file.name,
+            fileType: file.type,
+            fileBlob: file, // Objek Blob disimpan utuh tanpa Base64!
+            updatedAt: new Date().toISOString()
+        };
+        
+        const putRequest = store.put(dataRecord);
+        
+        putRequest.onsuccess = function() {
+            alert('File berhasil disimpan ke IndexedDB sebagai Blob!');
+        };
+        
+        transaction.oncomplete = function() {
+            db.close();
+        };
+    };
+    
+    request.onerror = function() {
+        console.error('Gagal membuka database IndexedDB');
+    };
 }`
 };
 
@@ -342,7 +386,6 @@ function updateUploaderUI() {
 
 // File Selection Handler
 function handleFileSelect(file) {
-    // Validate simple extensions if needed
     const config = fileTypeConfigs[selectedFileType];
     if (selectedFileType === 'json' && !file.name.endsWith('.json')) {
         alert('File bukan format JSON (.json)!');
@@ -432,7 +475,6 @@ function processAndSave() {
         reader.onload = function(e) {
             try {
                 const content = e.target.result;
-                // Validate JSON syntax
                 const parsed = JSON.parse(content);
                 localStorage.setItem(storageKey, JSON.stringify(parsed));
                 onSaveSuccess(storageKey);
@@ -451,7 +493,6 @@ function processAndSave() {
 
         try {
             const worksheet = currentWorkbook.Sheets[sheetName];
-            // SheetJS converts table to JSON Array of Objects
             const jsonData = XLSX.utils.sheet_to_json(worksheet);
             localStorage.setItem(storageKey, JSON.stringify(jsonData));
             onSaveSuccess(storageKey);
@@ -475,7 +516,6 @@ function processAndSave() {
     else if (selectedFileType === 'image') {
         reader.onload = function(e) {
             try {
-                // base64 DataURL
                 const base64String = e.target.result;
                 localStorage.setItem(storageKey, base64String);
                 onSaveSuccess(storageKey);
@@ -514,7 +554,6 @@ function parseCSV(text) {
     const lines = text.split(/\r?\n/).filter(line => line.trim() !== "");
     if (lines.length === 0) return [];
     
-    // Header parsing
     const headers = splitCSVLine(lines[0]);
     const result = [];
     
@@ -557,7 +596,6 @@ function updateStorageMonitor() {
     const keys = Object.keys(localStorage);
     localstorageKeysList.innerHTML = '';
     
-    // Clear dropdown selection
     const prevSelected = selectPreviewKey.value;
     selectPreviewKey.innerHTML = '<option value="">-- Pilih Key dari LocalStorage --</option>';
 
@@ -577,16 +615,11 @@ function updateStorageMonitor() {
 
     let totalBytes = 0;
     
-    // Sort keys alphabetically
     keys.sort().forEach(key => {
         const value = localStorage.getItem(key);
-        // Approximate byte size: JS strings are UTF-16, so 2 bytes per char usually.
-        // In localstorage calculations, browsers usually count UTF-16 or UTF-8 characters. 
-        // We will calculate exact string length as UTF-8 bytes for gauge simulation.
         const sizeBytes = encodeURIComponent(value).replace(/%[0-9A-F]{2}/g, '').length;
         totalBytes += sizeBytes;
 
-        // Determine type of storage key for badges
         let typeBadge = 'text';
         let badgeClass = 'badge-text';
         
@@ -638,24 +671,22 @@ function updateStorageMonitor() {
         localstorageKeysList.appendChild(row);
     });
 
-    // Re-select previously selected preview key if it still exists
     if (keys.includes(prevSelected)) {
         selectPreviewKey.value = prevSelected;
     }
 
     // Storage capacity calculations (Browser standard: ~5MB)
-    const limitBytes = 5 * 1024 * 1024; // 5MB
+    const limitBytes = 5 * 1024 * 1024;
     const percentage = (totalBytes / limitBytes) * 100;
     
     storageProgressBar.style.width = `${Math.min(percentage, 100)}%`;
     storagePercentageText.textContent = `${percentage.toFixed(2)}%`;
     storageUsedText.textContent = formatBytes(totalBytes);
     
-    // Add warning color if storage is > 80%
     if (percentage > 80) {
-        storageProgressBar.style.background = 'linear-gradient(to right, var(--warning), var(--danger))';
+        storageProgressBar.style.background = 'var(--danger)';
     } else {
-        storageProgressBar.style.background = 'linear-gradient(to right, var(--secondary), var(--primary), var(--accent))';
+        storageProgressBar.style.background = 'linear-gradient(to right, var(--secondary), var(--primary))';
     }
 
     // Attach actions to dynamically created rows
@@ -687,16 +718,13 @@ function showModalDetail(key) {
     const value = localStorage.getItem(key);
     modalKeyName.textContent = key;
     
-    // exact byte estimation
     const sizeBytes = encodeURIComponent(value).replace(/%[0-9A-F]{2}/g, '').length;
     modalKeySize.textContent = formatBytes(sizeBytes);
     
     try {
-        // Pretty print JSON
         const parsed = JSON.parse(value);
         modalJsonContent.textContent = JSON.stringify(parsed, null, 4);
     } catch(e) {
-        // Raw text if not JSON
         modalJsonContent.textContent = value;
     }
     
@@ -719,7 +747,6 @@ function renderSelectedData() {
 
     visualizerOutput.innerHTML = '';
 
-    // RAW JSON STRING MODE
     if (renderMode === 'raw') {
         const rawPre = document.createElement('pre');
         rawPre.className = 'raw-code-view';
@@ -727,13 +754,13 @@ function renderSelectedData() {
             const parsed = JSON.parse(value);
             rawPre.textContent = JSON.stringify(parsed, null, 4);
         } catch (e) {
-            rawPre.textContent = value; // Fallback plain text
+            rawPre.textContent = value;
         }
         visualizerOutput.appendChild(rawPre);
         return;
     }
 
-    // VISUALISASI UI MODE (depends on content type)
+    // VISUALISASI UI MODE
     
     // 1. Image Base64 check
     if (value.startsWith('data:image/')) {
@@ -756,11 +783,9 @@ function renderSelectedData() {
         const parsed = JSON.parse(value);
         
         if (Array.isArray(parsed) && parsed.length > 0) {
-            // Render beautiful HTML table
             const tableWrapper = document.createElement('div');
             tableWrapper.className = 'visualizer-table-wrapper';
             
-            // Extract unique keys for headers
             const headers = Object.keys(parsed[0]);
             
             let tableHTML = `<table class="visualizer-table"><thead><tr>`;
@@ -783,7 +808,6 @@ function renderSelectedData() {
             visualizerOutput.appendChild(tableWrapper);
         } 
         else if (typeof parsed === 'object' && parsed !== null) {
-            // It's a single JSON object, render as key-value card
             const grid = document.createElement('div');
             grid.className = 'card-render-grid';
             
@@ -808,11 +832,9 @@ function renderSelectedData() {
             grid.appendChild(card);
             visualizerOutput.appendChild(grid);
         } else {
-            // Simple array or value parsed as JSON (e.g. number/boolean)
             renderPlainTextView(value);
         }
     } catch (e) {
-        // 3. Fallback: Plain Text (for .txt uploaded files)
         renderPlainTextView(value);
     }
 }
@@ -842,10 +864,16 @@ function updateCodeDisplay(snippetKey) {
     
     if (codeSnippets[snippetKey]) {
         display.textContent = codeSnippets[snippetKey];
-        title.textContent = snippetKey === 'code-json' ? 'json-parser.js' : 
-                          snippetKey === 'code-excel' ? 'excel-sheetjs-parser.js' : 
-                          snippetKey === 'code-image' ? 'image-base64-encoder.js' : 
-                          'csv-parser.js';
+        
+        let fileTitle = 'json-parser.js';
+        switch(snippetKey) {
+            case 'code-json': fileTitle = 'json-parser.js'; break;
+            case 'code-excel': fileTitle = 'excel-sheetjs-parser.js'; break;
+            case 'code-image': fileTitle = 'image-base64-encoder.js'; break;
+            case 'code-csv': fileTitle = 'csv-parser.js'; break;
+            case 'code-indexeddb': fileTitle = 'indexeddb-handler.js'; break;
+        }
+        title.textContent = fileTitle;
     }
 }
 
@@ -868,7 +896,7 @@ function loadDemoData(force = false) {
     const demoExcel = 'demo_sheetjs_parsed';
 
     if (!force && (localStorage.getItem(demoJson) || localStorage.getItem(demoExcel))) {
-        return; // Already populated
+        return;
     }
 
     localStorage.clear();
@@ -881,7 +909,7 @@ function loadDemoData(force = false) {
     ];
     localStorage.setItem(demoJson, JSON.stringify(users));
 
-    // 2. CSV Demo Data (parsed to structured JSON array)
+    // 2. CSV Demo Data
     const sales = [
         { "Bulan": "Januari", "Target": "Rp 50jt", "Realisasi": "Rp 48.5jt", "Persentase": "97%" },
         { "Bulan": "Februari", "Target": "Rp 50jt", "Realisasi": "Rp 52.1jt", "Persentase": "104%" },
@@ -889,8 +917,8 @@ function loadDemoData(force = false) {
     ];
     localStorage.setItem(demoCsv, JSON.stringify(sales));
 
-    // 3. Image Demo Data (Data URL SVG representation to save space but show image rendering)
-    const svgDemo = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="100%" height="100%" fill="%231e1b4b"/><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%238b5cf6"/><stop offset="100%" stop-color="%23d946ef"/></linearGradient></defs><circle cx="150" cy="85" r="45" fill="url(%23g)"/><text x="150" y="160" fill="%23e5e7eb" font-family="sans-serif" font-weight="bold" font-size="16" text-anchor="middle">StorageLearn Demo</text><text x="150" y="180" fill="%239ca3af" font-family="sans-serif" font-size="11" text-anchor="middle">Image Rendered from LocalStorage</text></svg>`;
+    // 3. Image Demo Data (SVG representation)
+    const svgDemo = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="300" height="200" viewBox="0 0 300 200"><rect width="100%" height="100%" fill="%232563eb"/><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%230ea5e9"/><stop offset="100%" stop-color="%232563eb"/></linearGradient></defs><circle cx="150" cy="85" r="45" fill="url(%23g)"/><text x="150" y="160" fill="%23ffffff" font-family="sans-serif" font-weight="bold" font-size="16" text-anchor="middle">StorageLearn Demo</text><text x="150" y="180" fill="%23bfdbfe" font-family="sans-serif" font-size="11" text-anchor="middle">Image Rendered from LocalStorage</text></svg>`;
     localStorage.setItem(demoImg, svgDemo);
 
     // 4. Text Demo Data
